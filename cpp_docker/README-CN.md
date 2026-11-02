@@ -19,7 +19,7 @@ OpenBLAS 0.3.33。
 ### 拉取GHCR镜像
 
 ```bash
-docker pull ghcr.io/wfst-unions-hsc/fourier_quad_pipeline/cpppipeline:latest
+docker pull ghcr.io/syoong-s/fourier_quad_pipeline/cpppipeline:latest
 ```
 
 ### 下载源码编译
