@@ -22,7 +22,7 @@
 ### 拉取GHCR镜像
 
 ```bash
-docker pull ghcr.io/wfst-unions-hsc/fourier_quad_pipeline/f77pipeline:latest
+docker pull ghcr.io/syoong-s/fourier_quad_pipeline/f77pipeline:latest
 ```
 
 ### 下载源码编译
