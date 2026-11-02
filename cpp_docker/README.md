@@ -20,7 +20,7 @@ schedulers, or vendor fabrics need separate validation.
 ### Pull the GHCR image
 
 ```bash
-docker pull ghcr.io/wfst-unions-hsc/fourier_quad_pipeline/cpppipeline:latest
+docker pull ghcr.io/syoong-s/fourier_quad_pipeline/cpppipeline:latest
 ```
 
 ### Download the source and build
