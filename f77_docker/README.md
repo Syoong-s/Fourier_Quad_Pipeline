@@ -24,7 +24,7 @@ Dependency sources and checksums are recorded in [SOURCES.md](SOURCES.md) and
 ### Pull the GHCR image
 
 ```bash
-docker pull ghcr.io/wfst-unions-hsc/fourier_quad_pipeline/f77pipeline:latest
+docker pull ghcr.io/syoong-s/fourier_quad_pipeline/f77pipeline:latest
 ```
 
 ### Download the source and build
