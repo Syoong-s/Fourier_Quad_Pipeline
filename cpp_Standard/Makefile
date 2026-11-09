@@ -2,7 +2,7 @@ CXX = mpicxx
 STACK_PREFIX ?=
 EIGEN_INCLUDE ?=
 
-CPPFLAGS = -Iinclude -Iconfig
+CPPFLAGS = -Iinclude -Iconfig -include include/RuntimeScientificOverrides.hpp
 CXXFLAGS = -O3 -std=c++17 -Wall -Wextra -MMD -MP
 LDFLAGS =
 LDLIBS = -lcfitsio -lfftw3 -lfftw3f -llapack -lblas -lm
@@ -17,6 +17,9 @@ CPPFLAGS += -I$(EIGEN_INCLUDE)
 endif
 
 SRCS = main.cpp \
+       src/RuntimeConfig.cpp \
+       src/LegacyRuntimeAdapter.cpp \
+       src/RuntimeScientificOverrides.cpp \
        src/general/ExposureList.cpp \
        src/general/MPIUtils.cpp \
        src/general/PathUtils.cpp \
@@ -74,4 +77,13 @@ clean:
 
 -include $(DEPS)
 
-.PHONY: all clean
+# Configuration-only regression: no MPI runtime or scientific libraries required.
+config-test:
+	@set -eu; test_bin=$$(mktemp /tmp/fq-legacy-config-XXXXXX); \
+	    trap 'rm -f "$$test_bin"' EXIT; \
+	    $(CXX) $(CPPFLAGS) -std=c++17 -Wall -Wextra -Werror \
+	    src/RuntimeConfig.cpp src/LegacyRuntimeAdapter.cpp \
+	    src/RuntimeScientificOverrides.cpp tests/RuntimeConfigTest.cpp -o "$$test_bin"; \
+	    "$$test_bin"
+
+.PHONY: all clean config-test
