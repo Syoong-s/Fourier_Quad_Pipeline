@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "source": "../f77",
+  "run_directory": "./fq-run",
+  "image": "ghcr.io/syoong-s/fourier_quad_pipeline/f77pipeline:gnu4.8.5",
+  "ranks": 4,
+  "build_jobs": 4,
+  "mounts": [
+    {
+      "host": "/absolute/path/to/gaia-tiles",
+      "container": "/data/catalogs/gaia",
+      "mode": "ro"
+    },
+    {
+      "host": "/absolute/path/to/source-tiles",
+      "container": "/data/catalogs/source",
+      "mode": "ro"
+    },
+    {
+      "host": "/absolute/path/to/processing-tree",
+      "container": "/data/DataProcess",
+      "mode": "rw"
+    }
+  ],
+  "paths": {
+    "astrometry_cat": "/data/catalogs/gaia",
+    "source_cat": "/data/catalogs/source",
+    "flat_path": null,
+    "psf_path": null,
+    "exposure_list": "/data/DataProcess/expo_gband.list"
+  },
+  "environment": {},
+  "hpc": {
+    "sif": "./f77pipeline.sif",
+    "runtime": "apptainer",
+    "mpi": "pmi2",
+    "srun_args": [],
+    "environment": {}
+  }
+}

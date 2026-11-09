@@ -9,3 +9,8 @@ sources/
 *.tar.gz
 *.tar.bz2
 *.tar.xz
+# Generated JSON-launcher project and isolated runtime snapshot.
+project.json
+fq-run/
+__pycache__/
+*.py[cod]

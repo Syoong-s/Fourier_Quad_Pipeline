@@ -1,6 +1,8 @@
 .git
 .github
 .env
+project.json
+fq-run/
 runner/f77pipeline.env
 runner/site-env.sh
 *.sif
@@ -10,3 +12,4 @@ sources/
 build/
 output/
 tmp/
+__pycache__/
