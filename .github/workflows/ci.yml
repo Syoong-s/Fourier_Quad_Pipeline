@@ -1,0 +1,35 @@
+name: Continuous integration
+
+# Validate normal branch commits and pull requests before version-tag releases.
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standard-configuration:
+    name: Standard C++ configuration
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Check Standard source paths
+        run: make -C cpp_Standard -n all CXX=g++ > /dev/null
+      - name: Build and run existing configuration tests
+        run: make -C cpp_Standard config-test CXX=g++
+
+  docker-launchers:
+    name: Docker and HPC launcher contracts
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate C++ Docker and run existing launcher tests
+        run: bash cpp_docker/scripts/check-public-repo.sh
+      - name: Validate Fortran Docker and run existing launcher tests
+        run: bash f77_docker/scripts/check-public-repo.sh

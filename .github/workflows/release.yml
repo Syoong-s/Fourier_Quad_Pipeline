@@ -1,10 +1,7 @@
 name: Publish release
 
-# ==========================================
-# Trigger: push a version tag (v*) or manual dispatch.
-# Creates a GitHub Release and attaches one zip file per
-# top-level content directory in the repository, including
-# ==========================================
+# Trigger: version tags (v*) or manual dispatch. Each scientific/deployment
+# directory remains a separate zip. English docs are packaged independently.
 on:
   workflow_dispatch:
   push:
@@ -24,32 +21,30 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Package each content directory
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts
 
-          # Zip every top-level content directory.
-          # Exclude CI internals and the artifact staging directory itself.
+          # Keep each source and launcher folder as its own archive.
+          # Documentation is bundled separately below to keep both manuals
+          # together with the root navigation and license.
           find . -maxdepth 1 -mindepth 1 -type d \
               ! -name '.git' \
               ! -name '.planning' \
               ! -name '.github' \
               ! -name 'artifacts' \
+              ! -name 'doc' \
               -print0 | sort -z | while IFS= read -r -d '' dir; do
             dirname="$(basename "$dir")"
             echo "Zipping: $dirname"
-            zip -r "artifacts/${dirname}.zip" "$dir" \
+            zip -q -r "artifacts/${dirname}.zip" "$dir" \
                 -x '*/.git/*' '*/.git'
           done
 
-          # Archive root-level documentation (+ LICENSE) so the per-tree README
-          # pointers (../CPP_GUIDE.md, ../CPP_PIPELINE_PARAMETERS.md) resolve
-          # when a user extracts a single content zip alongside docs.zip.
-          zip artifacts/docs.zip \
-              README.md README_CN.md \
-              F77_GUIDE.md F77_GUIDE_CN.md \
-              CPP_GUIDE.md CPP_GUIDE_CN.md \
-              CPP_PIPELINE_PARAMETERS.md LICENSE
+          # The English documentation has two independent systems under doc/.
+          zip -q -r artifacts/docs.zip README.md LICENSE doc/ \
+              init_program/README.md
 
           echo "=== Artifact list ==="
           ls -lh artifacts/

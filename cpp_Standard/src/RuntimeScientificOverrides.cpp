@@ -29,6 +29,13 @@ void apply(const RuntimeConfig& config) {
     LensingConfig::PSF_Ms = v.psf_ms;
     ExtCatConfig::EXTCAT_TOTAL_COLUMNS = config.extcat.total_columns;
 
+    // Projected catalogs contain only the selected columns. All downstream
+    // column offsets must use the emitted width, not the raw input width.
+    const std::size_t emitted_external_columns =
+        config.extcat.use_explicit_columns
+            ? config.extcat.input_columns_one_based.size()
+            : config.extcat.total_columns;
+
     // Raw external fields are also remapped when the user projects columns.
     const auto mapped = [&](std::size_t raw) -> int {
         if (!config.extcat.use_explicit_columns)
@@ -49,7 +56,7 @@ void apply(const RuntimeConfig& config) {
     FDConfig::col_mag_z = mapped(13);
     FDConfig::col_mag_y = mapped(15);
     FDConfig::col_zp = mapped(config.extcat.zp_column_one_based);
-    FDConfig::external_num_cols = static_cast<int>(ExtCatConfig::EXTCAT_TOTAL_COLUMNS)
+    FDConfig::external_num_cols = static_cast<int>(emitted_external_columns)
         * LensingConfig::ext_cat;
     FDConfig::col_expo = FDConfig::external_num_cols;
     FDConfig::col_ccd = FDConfig::external_num_cols + 1;
@@ -81,7 +88,7 @@ void apply(const RuntimeConfig& config) {
     FDConfig::col_parity = FDConfig::source_col_offset + (FDConfig::FQ_COMPILED_col_parity - FDConfig::FQ_COMPILED_source_col_offset);
     FDConfig::col_chi2 = FDConfig::source_col_offset + (FDConfig::FQ_COMPILED_col_chi2 - FDConfig::FQ_COMPILED_source_col_offset);
     FDConfig::ICHI2 = FDConfig::source_col_offset + (FDConfig::FQ_COMPILED_ICHI2 - FDConfig::FQ_COMPILED_source_col_offset);
-    ProcessRearrConfig::ALL_CAT_TOTAL_COLUMNS = ExtCatConfig::EXTCAT_TOTAL_COLUMNS
+    ProcessRearrConfig::ALL_CAT_TOTAL_COLUMNS = emitted_external_columns
         + ProcessRearrConfig::EXPO_COLUMN_COUNT + ProcessRearrConfig::CCD_COLUMN_COUNT
         + ProcessRearrConfig::ichi2;
 }

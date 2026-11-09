@@ -1,218 +1,68 @@
-# Fourier_Quad Pipeline
+# 🌌 Fourier_Quad Pipeline
 
-> 中文版：[README_CN.md](README_CN.md)
+[![Language](https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square&logo=c%2B%2B)](https://en.cppreference.com/w/cpp/17)
+[![Language](https://img.shields.io/badge/Fortran-77-734F96?style=flat-square)](https://fortran-lang.org/)
+[![Parallelism](https://img.shields.io/badge/MPI-Distributed-2C5BB4?style=flat-square)](https://www.open-mpi.org/)
+[![Container](https://img.shields.io/badge/Docker_%7C_Apptainer-Ready-2496ED?style=flat-square&logo=docker)](doc/cpp/DOCKER.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-success?style=flat-square)](LICENSE)
 
-## Overview
+An end-to-end, MPI-parallel implementation of the **Fourier_Quad (FQ)** weak gravitational lensing shear measurement framework for wide-field CCD surveys. The repository contains two **independently operated scientific implementations**: a C++17 pipeline in [`cpp_Standard/`](cpp_Standard/) and a Fortran77 pipeline in [`f77/`](f77/). Both use Fourier-space shear estimation and PSF modeling, but have **different configuration, preprocessing, and launching contracts**.
 
-Modern C++17 and Legacy F77 implementation of the Fourier_Quad weak-lensing shear measurement pipeline. The
-repository provides current C++17 and legacy Fortran implementations, each in Standard and Lite variants.
+![Fourier_Quad scientific pipeline architecture](doc/cpp/figures/pipeline_overview.svg)
 
-## Pipeline variants
+---
 
-| Pipeline | Source directory | Purpose |
-|---|---|---|
-| C++ Lite | [`cpp_Lite`](cpp_Lite/) | C++17 production path with unused alternate branches removed. |
-| C++ Standard | [`cpp_Standard`](cpp_Standard/) | Full C++17 branch set, including optional scientific paths. |
-| F77 Lite | [`f77_Lite`](f77_Lite/) | Reduced legacy Fortran production path. |
-| F77 Standard | [`f77`](f77/) | Full legacy Fortran branch set. |
+## ✨ Key Features
 
-All four variants build an executable named `Fourier_Quad_Pipe`.
->*Note: The F77 version only includes the main scientific processing pipeline and does not include normalized external star catalogs, initialized data structures, reshuffled shear catalogs, or field distortion test programs.*
->*To use the F77 version, you must prepare compliant external star catalogs and initialize the data structures to be processed using [Standalone Init Script](init_program/init_program.py).*
+- **Rigorous Fourier-Space Shear Estimation** — Fourier_Quad measures shear from two-dimensional Fourier power spectra, with PSF treatment and noise-bias correction.
+- **Excellent Computing Efficiency** — The processing speed for a single source reaches the order of $10^{-4}s$.
+- **Distributed MPI Execution** — The C++ program integrates catalog preparation, archive initialization, nine-stage measurement, spatial rearrangement, and optional field-distortion calibration; the Fortran77 program processes existing exposure lists using nine compile-time-selected stages.
+- **Comprehensive Scientific Branches** — Configurable PSF modeling, background/noise handling, DQ masks, external catalog matching, and calibration options.
+- **Workstation & HPC Container Readiness** — Independent Python JSON launchers (`cpp_docker/fqctl.py` and `f77_docker/fqctl.py`) support Docker workstations and Slurm + Apptainer clusters. Their JSON schemas and runtime arguments are **not interchangeable**.
 
-## Quick Start
+---
 
-### 1. Download a Release source package
+## 🗂️ Documentation Index
 
-Open [GitHub Releases](https://github.com/WFST-UNIONS-HSC/Fourier_Quad_Pipeline/releases)
-and download the source package for the Pipeline you plan to run:
+Choose **one implementation** to begin. Each column below links to a self-contained English documentation system.
 
-| Pipeline | Release source package |
-|---|---|
-| C++ Lite | `cpp_Lite.zip` |
-| C++ Standard | `cpp_Standard.zip` |
-| F77 Lite | `f77_Lite.zip` |
-| F77 Standard | `f77.zip` |
+| Section | C++ Standard (`cpp_Standard/`) | Fortran77 (`f77/`) |
+| :--- | :--- | :--- |
+| **Documentation Home Page** | [Home C++](doc/cpp/README.md) | [Home F77](doc/f77/README.md) |
+| **Quick Start & Essential Configuration** | [C++ Configuration](doc/cpp/CONFIGURATION.md) | [F77 Configuration](doc/f77/CONFIGURATION.md) |
+| **Environment & Dependencies** | [C++ User Guide](doc/cpp/CPP_GUIDE.md#environment-and-dependencies) | [F77 User Guide](doc/f77/F77_GUIDE.md#environment-and-dependencies) |
+| **Data Preparation** | [Science/DQ, Gaia and External Catalogs](doc/cpp/DATA_PREPARATION.md) | [Exposure Lists and Prepared FITS](doc/f77/DATA_PREPARATION.md) |
+| **Configuration Reference** | [C++ INI and Compiled Parameters](doc/cpp/CPP_PIPELINE_PARAMETERS.md) | [F77 Compile-Time Parameters](doc/f77/F77_PIPELINE_PARAMETERS.md) |
+| **Native Build & Run** | [C++ Build and Execution](doc/cpp/CPP_GUIDE.md#build-and-run) | [F77 Build and Execution](doc/f77/F77_GUIDE.md#build-and-run) |
+| **Docker Workstation** | [C++ Docker](doc/cpp/DOCKER.md) | [F77 Docker](doc/f77/DOCKER.md) |
+| **Container Paths** | [C++ JSON Mount/INI Mapping](doc/cpp/PATHS.md) | [F77 JSON Mount/Compiled Path Mapping](doc/f77/PATHS.md) |
+| **Slurm + Apptainer** | [C++ HPC Runner](doc/cpp/HPC.md) | [F77 HPC Runner](doc/f77/HPC.md) |
+| **Third-Party Notices** | [C++ Dependencies](doc/cpp/THIRD_PARTY_NOTICES.md) | [F77 Dependencies](doc/f77/THIRD_PARTY_NOTICES.md) |
 
-Use a fixed Release so the software version used for an analysis can be
-recorded and reproduced.
+The optional standalone [dataset initializer](init_program/README.md) can prepare Science and DQ archives for pipelines that consume an exposure-list tree. It has its own Python/Astropy/MPI requirements.
 
-### 2. Prepare the environment
+---
 
-Install the dependencies in the relevant [C++](#c-pipeline) or
-[F77](#f77-pipeline) environment table below.
+## 📚 Citations & References
 
-### 3. Prepare input data
+If you use the scientific software or its products, cite the relevant foundational Fourier_Quad publications:
 
-Prepare the four input classes described in
-[Input data requirements](#input-data-requirements). The first three are
-required; DQ masks depend on the selected Pipeline configuration.
+1. **Foundational Fourier_Quad Method:**
+   > **Zhang, J.** (2008), *"Measuring the cosmic shear in Fourier space"*, **Monthly Notices of the Royal Astronomical Society (MNRAS)**, 383(1), 113–118.
+   > DOI: [10.1111/j.1365-2966.2007.12585.x](https://doi.org/10.1111/j.1365-2966.2007.12585.x) · arXiv: [astro-ph/0612146](https://arxiv.org/abs/astro-ph/0612146)
 
-### 4. Configure the Pipeline
+2. **Faint-Source Noise Correction & Power-Spectrum Formalism:**
+   > **Zhang, J., Luo, W., & Foucaud, S.** (2015), *"Accurate Shear Measurement with Faint Sources"*, **Journal of Cosmology and Astroparticle Physics (JCAP)**, 2015(01), 024.
+   > DOI: [10.1088/1475-7516/2015/01/024](https://doi.org/10.1088/1475-7516/2015/01/024) · arXiv: [1312.5514](https://arxiv.org/abs/1312.5514)
 
-- C++ users: review the selected source package's `config/*.hpp`. The complete
-  Standard/Lite comparison is in
-  [CPP_PIPELINE_PARAMETERS.md](CPP_PIPELINE_PARAMETERS.md).
-- F77 users: edit `para.inc`, `cust_para.inc`, and `sig_para.inc` as described
-  in the [F77 guide](F77_GUIDE.md).
+3. **PDF Symmetrization & Field-Distortion Shear Calibration:**
+   > **Zhang, J., Dong, F., Li, H., et al.** (2019), *"Testing Shear Recovery with Field Distortion"*, **The Astrophysical Journal (ApJ)**, 875(1), 48.
+   > DOI: [10.3847/1538-4357/ab1080](https://doi.org/10.3847/1538-4357/ab1080) · arXiv: [1808.02593](https://arxiv.org/abs/1808.02593)
 
-*For `cpp_Lite`, first set the variables in `Initialize.hpp` correctly; the
-program can then run.*
+---
 
-### 5. Build and run
+## ⚖️ License & Versioning
 
-From the extracted source-package directory, the shortest entry points are:
-
-```bash
-# C++ Lite or C++ Standard
-make -j4
-./Fourier_Quad_Pipe --help
-
-# F77 Lite or F77 Standard
-make LAPACK_LIB_DIR=/path/to/lapack/lib \
-     CFITSIO_LIB_DIR=/path/to/cfitsio/lib
-mpirun -np 4 ./Fourier_Quad_Pipe /data/work/expo_gband.list
-```
-
-Docker and HPC documentation entrances:
-
-| Implementation | Local Docker | HPC / Slurm + Apptainer |
-|---|---|---|
-| C++ | [C++ Docker guide](cpp_docker/README.md) | [C++ runner guide](cpp_docker/runner/README.md) |
-| F77 | [F77 Docker guide](f77_docker/README.md) | [F77 runner guide](f77_docker/runner/README.md) |
-
-See the [C++ guide](CPP_GUIDE.md) or [F77 guide](F77_GUIDE.md) for complete
-arguments, phase selection, and run examples.
-
-## Environment prerequisites
-
-### C++ Pipeline
-
-| Environment | Prerequisite | Notes |
-|---|---|---|
-| Regular Linux | 64-bit Linux; MPI C++ compiler with C++17 support; OpenMPI or compatible MPI; CFITSIO; FFTW3 (double and single precision); Eigen3; BLAS / LAPACK | GCC 12.3.0; OpenMPI 4.1.8; CFITSIO 4.6.4; FFTW 3.3.11; Eigen 3.4.0 |
-| HPC / Slurm | Regular Linux prerequisites; shared filesystem; Slurm; PMI2-compatible launch; Apptainer / Singularity | GCC 12.3.0; OpenMPI 4.1.8; CFITSIO 4.6.4; FFTW 3.3.11; Eigen 3.4.0 |
-
-### F77 Pipeline
-
-| Environment | Prerequisite | Notes |
-|---|---|---|
-| Regular Linux | 64-bit Linux; GNU Fortran toolchain with `mpif77`; MPICH or compatible Fortran MPI; CFITSIO; repository-provided `FFTPACK.f`; BLAS / LAPACK | GNU Fortran 4.8.5; MPICH 4.1.2; CFITSIO 4.3.1; LAPACK 3.8.0 |
-| HPC / Slurm | Regular Linux prerequisites; shared filesystem; Slurm; MPI-compatible launch; Apptainer / Singularity | GNU Fortran 4.8.5; MPICH 4.1.2; CFITSIO 4.3.1; LAPACK 3.8.0 |
-
-## Input data requirements
-
-| Input | Purpose | Minimum requirement |
-|---|---|---|
-| Science images | Exposures on which the Pipeline performs source detection, shape measurement, and weak-lensing processing. | Supported Science FITS/FZ data whose file organization matches the configured exposure and CCD recognition rules. |
-| Gaia catalog | High-precision sky-coordinate reference for source matching and astrometric calibration. | Covers the Science-image footprint; each file has one header line, followed by rows whose two fields are numeric `ra` and `dec`. |
-| External source catalog | Supplies sky positions, `zp`, and photometry for external-source matching and downstream processing. | Contains `ra`, `dec`, `zp`, and a magnitude in at least one observed band. |
-| DQ masks (*Optional*) | Marks bad, saturated, defective, or otherwise invalid pixels. | May be omitted only when the selected configuration does not read DQ masks. |
-
-### Science images
-
-Science images are the primary scientific exposures, not calibration catalogs or
-an output directory. They must use a FITS/FZ format supported by the selected
-variant, be readable through its FITS logic, and follow the exposure/CCD naming
-and list conventions described in the detailed guide.
-
-### Gaia catalog
-
-The Gaia catalog supplies accurate RA/Dec reference positions for object
-matching and astrometric calibration. It must cover the actual Science-image
-footprint and be stored directly under the configured `ASTROMETRY_CAT`
-directory. Every consumed tile starts with one header line; subsequent rows use
-the first two numeric fields as RA and Dec. Rows may be comma- or
-whitespace-separated and additional fields are ignored.
-
-`LensingConfig::AstroCatType` selects one of two filename layouts. Type `1` is
-the legacy large-tile layout below. Type `2` uses the one-degree layout and may
-be generated from raw flat-directory files by `process_astrocat`.
-
-**Filename convention:**
-
-- `|Dec| < 80°`: `gaia_<p|m><D>_<RR>.cat`, where
-  `D = floor(|Dec| / 10) + 1` (1-8) and `RR = floor(RA / 10)` (00-35,
-  zero-padded).
-- `|Dec| >= 80°`: `gaia_<p|m>9.cat`, without an RA suffix.
-- `p` denotes nonnegative Dec; `m` denotes negative Dec.
-- Each file must contain one header line.
-
-> Examples:
-> 1. gaia_p1_00.cat covers `0° <= RA < 10°` and `0° <= Dec < 10°`
-> 2. gaia_m3_12.cat covers `120° <= RA < 130°` and `-30° < Dec <= -20°`
-> 3. gaia_p9.cat covers `0° <= RA < 360°` and `80° <= Dec <= 90°`
-
-*For Type 1, to ensure that stars can still be selected for exposures located at the edges of the 10°×10° grid, it is recommended to expand the upper and lower Dec coverage limits of a single star catalog by 2° based on the aforementioned limits, and expand the upper and lower RA limits by 2°, 4°, and 6° within the 0°, 30°, and 60° ranges, respectively.*
-
-Type 2 files use
-`<ASTROMETRY_TILE_PREFIX>RA_<RA0>_<RA1>_Dec_<Dec0>_<Dec1>.dat`. The default
-prefix in `config/pathconfig.hpp` is `astra_`; it does not include `RA_`.
-RA bounds use three digits and Dec bounds use signed `p`/`m` two-digit values.
-For example, `astra_RA_123_124_Dec_m05_m04.dat` covers
-`123° <= RA < 124°`, `-5° <= Dec < -4°`.
-
-`process_astrocat` reads only direct regular files from `--astrocat-input`,
-produces these Type-2 tiles, and removes exact/one-ULP coordinate duplicates.
-Its `--astrocat-output` option controls only publication. To consume the result,
-set `ASTROMETRY_CAT` to that directory and set `AstroCatType=2` separately.
-
-### External source catalog
-
-The minimum schema is intentionally survey- and band-independent:
-
-| Field | Meaning |
-|---|---|
-| `ra` | Right Ascension. |
-| `dec` | Declination. |
-| `zp` | The catalog `zp` quantity consumed by the selected Pipeline configuration. |
-| One observed-band magnitude | A magnitude in any one band used by the selected analysis. |
-
-Additional colors, redshifts, object classes, shapes, and flags may be retained,
-but they are not part of this minimum input contract. Configure actual column
-positions, names, delimiter, header handling, and projection in
-`config/ExtCatConfig.hpp` or with its documented CLI overrides.
-
-**Filename convention:**
-
-- 1° × 1° tile:
-  `<SOURCE_CAT_TILE_PREFIX>RA_<RA0>_<RA1>_Dec_<Dec0>_<Dec1>.dat`.
-- The default `SOURCE_CAT_TILE_PREFIX` in `config/pathconfig.hpp` is `extern_`;
-  the prefix does not include `RA_`.
-- RA boundaries use three digits. Dec boundaries use `p` or `m` plus a two-digit
-  absolute value. Each upper boundary is one degree above its lower boundary.
-- Each file must contain one header line.
-
-> Example:
-> `extern_RA_123_124_Dec_m05_m04.dat` covers `123° <= RA < 124°` and
-> `-5° <= Dec < -4°`.
-
-Use the C++ `process_extcat` tool to convert raw downloads into these canonical
-pipeline tiles. Raw downloader filenames are source artifacts and are not a
-second C++ naming convention.
-
-### DQ masks (optional)
-
-DQ masks identify pixels that must not participate in scientific measurements,
-including bad pixels, saturation, detector defects, and other invalid regions.
-They are optional only when the chosen configuration disables DQ access. Standard
-users can select the relevant mask mode with `include_Mask`; current C++ Lite is
-fixed to per-chip DQ masks, so Lite runs must provide them. If DQ masks are
-omitted, verify that no configured path or active branch still reads them.
-
-## C++ configuration reference
-
-Use [CPP_PIPELINE_PARAMETERS.md](CPP_PIPELINE_PARAMETERS.md) to compare every
-configuration header, Standard/Lite default, CLI override, and rebuild rule.
-
-## Detailed guides
-
-- [C++ Pipeline guide](CPP_GUIDE.md)
-- [F77 Pipeline guide](F77_GUIDE.md)
-- [External source catalog tooling](gen_src_cat/README.md)
-
-## License
-
-Repository-authored code is distributed under the [MIT License](LICENSE).
-Container dependencies retain their upstream licenses; consult each container
-directory's third-party notices.
+- **Open-Source License:** Repository-authored code, scripts, and documentation are distributed under the [MIT License](LICENSE) (Copyright © 2026 Jun Zhang and Syoong-s).
+- **Third-Party Software:** Scientific libraries and container dependencies retain their respective upstream licenses; consult the [C++ notices](doc/cpp/THIRD_PARTY_NOTICES.md) and [F77 notices](doc/f77/THIRD_PARTY_NOTICES.md).
+- **Reproducibility:** Use a fixed commit or [GitHub Release](https://github.com/Syoong-s/Fourier_Quad_Pipeline/releases). Record the selected implementation, compiler/container image, runtime JSON or INI, edited headers, and input catalogs with scientific outputs.

@@ -1,13 +1,23 @@
-# F77 dataset initializer
+# 🗂️ Standalone Science/DQ Dataset Initializer
 
-`init_program.py` replaces the former `gencat.py`, `decom_mask.py`, and
-`server.slurm`. It is one Python entry point with embedded `#SBATCH` directives,
-so the same file supports local serial runs, MPI runs, and direct Slurm batch
-submission.
+[Repository Home](../README.md) · [C++ Data Preparation](../doc/cpp/DATA_PREPARATION.md) · [Fortran77 Data Preparation](../doc/f77/DATA_PREPARATION.md)
 
-The program reads the original science and DQ `.fits.fz` repositories in place.
-It never copies, moves, or deletes those archives. Outputs use the current
-`cpp_Standard`/`cpp_Lite` and `f77`/`f77_Lite` contract:
+`init_program/init_program.py` is a standalone Python implementation for extracting per-chip Science and data-quality (DQ) images from multi-extension `.fits.fz` archives and generating the exposure-list directory tree. It is independent of the scientific C++ and Fortran77 executables. It **never modifies the original archives**.
+
+The script has embedded `#SBATCH` directives and supports local serial, MPI and direct Slurm batch submission. It can be used when preparing the same file tree for either scientific implementation; ensure the selected scientific program's data and catalog schema requirements are satisfied.
+
+## Runtime Requirements
+
+- Python **3.10+**.
+- `astropy` and `numpy` for FITS handling.
+- `mpi4py` built for the MPI runtime used on the host if launching multiple ranks.
+- `srun` only when submitting to Slurm via the script's batch entry point.
+
+For example, install the Python packages in an isolated environment with an MPI implementation compatible with `mpi4py`.
+
+## Output Tree
+
+The initializer writes under the selected output root:
 
 ```text
 <output-root>/
@@ -16,85 +26,74 @@ It never copies, moves, or deletes those archives. Outputs use the current
 │   ├── dqmask/<exposure>/<exposure>_<CCDNUM>.fits
 │   ├── expolists/<exposure>.list
 │   ├── result/
-│   ├── stamps/<product>/[<exposure>/]
-│   └── astrometry/<product>/[<exposure>/]
+│   ├── stamps/...
+│   └── astrometry/...
 ├── expo_<target>.list
 ├── fits_<target>.list
 └── init_<target>_manifest.json
 ```
 
-Science outputs retain `CCDNUM` in their FITS headers; their basename suffix is
-the C++ two-dimensional-HDU occurrence number. DQ outputs use physical
-`CCDNUM`, and DQ exposure stems map `ood` to `ooi`.
+Science outputs follow the image HDU occurrence sequence; DQ outputs use physical `CCDNUM`, not the Science sequence. The default DQ naming convention maps exposure stems from `ood` to `ooi`. If your data do not follow these conventions, inspect the initializer's command/options and the consumer's header rules before running.
 
-## Runtime requirements
+The top-level `expo_<target>.list` is the required **positional argument** for the Fortran77 executable; the C++ pipeline can also use this list when running without its built-in `process_init` phase.
 
-- Python 3.10 or newer
-- Astropy
-- mpi4py linked to the MPI used by the launcher
-- NumPy (installed as an Astropy dependency)
-- Slurm `srun` only for direct `sbatch` execution
+## Portable Commands
 
-The verified WSL environment uses Python 3.12.13, Astropy 8.0.0, mpi4py 4.1.2,
-NumPy 2.5.0, and Open MPI 5.0.10. On the cluster, load the site's Python/MPI
-modules or activate an equivalent virtual environment before submitting.
-
-## Portable commands
-
-Inspect all options without opening data:
+Inspect all command-line options:
 
 ```bash
-python init_program.py --help
+python3 init_program/init_program.py --help
 ```
 
-Run serially (MPI size one):
+Prepare the data on one rank:
 
 ```bash
-python init_program.py \
+python3 init_program/init_program.py \
   --science-root /data/archive/science \
   --dq-root /data/archive/dq \
-  --output-root /data/work \
+  --output-root /data/processed \
   --target gband --prefix c4d_ --contains v1 \
   --existing fail
 ```
 
-Run under MPI:
+Use MPI when appropriate:
 
 ```bash
-mpirun -np 16 python init_program.py \
+mpirun -np 8 python3 init_program/init_program.py \
   --science-root /data/archive/science \
   --dq-root /data/archive/dq \
-  --output-root /data/work \
+  --output-root /data/processed \
   --target gband --prefix c4d_ --contains v1 \
   --existing resume
 ```
 
-Submit the same file to Slurm. The batch process automatically starts one
-`srun` step using the allocation requested by the directives at the top of the
-Python file:
+Submit with Slurm if your environment supports direct batch submission of a Python script:
 
 ```bash
-sbatch init_program.py \
-  --science-root /lustre/archive/science \
-  --dq-root /lustre/archive/dq \
-  --output-root /lustre/work \
+sbatch init_program/init_program.py \
+  --science-root /data/archive/science \
+  --dq-root /data/archive/dq \
+  --output-root /data/processed \
   --target gband --prefix c4d_ --contains v1 \
   --existing resume
 ```
 
-Edit the embedded `#SBATCH` lines when another partition, task count, node
-layout, log path, or time limit is required. `--no-srun` intentionally keeps a
-batch allocation serial for diagnosis.
+Review the script's embedded `#SBATCH` resources and site-specific environment first. `--no-srun` allows serial troubleshooting inside an allocation.
 
-## Existing-output modes
+## Existing-Output Modes
 
-- `fail`: reject an archive if any planned chip output already exists.
-- `resume`: validate and reuse good outputs, then regenerate missing or invalid
-  chips.
-- `overwrite`: regenerate every planned chip and atomically replace it.
+| `--existing` value | Behavior |
+| :--- | :--- |
+| `fail` | Refuse to overwrite existing planned chip products. |
+| `resume` | Reuse valid products, regenerate missing or invalid items. |
+| `overwrite` | Regenerate outputs and replace them atomically. |
 
-Each chip is first written below `<target>/.fq_init_tmp/<run>/` and then moved
-into place on the same filesystem. Lists and the manifest are also atomically
-replaced. Any failed archive produces a nonzero program exit and is recorded in
-the manifest; successfully initialized exposures remain usable for diagnosis or
-a later `--existing resume` run.
+The initializer writes files through a staging area under `<target>/.fq_init_tmp/`, then atomically publishes chip outputs, lists, and a manifest on the same filesystem. Failed archives are recorded; a nonzero return status indicates that the complete requested initialization did not succeed. Successful previous outputs can be inspected or reused with `--existing resume`.
+
+## Checks Before Scientific Processing
+
+- Compare a sampled Science image and DQ mask by physical CCD identification.
+- Inspect both exposure-list levels and confirm that every path is accessible to all MPI ranks.
+- Confirm the selected token filter actually matches intended archive basenames.
+- Check output permissions and space. Do not put generated outputs under the raw archive roots.
+- For a containerized scientific run, verify that exposure-list **contents** use paths visible inside the container; host paths are not automatically rewritten by Docker or Apptainer.

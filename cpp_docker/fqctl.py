@@ -23,7 +23,7 @@ SOURCE_TARGET = '/workspace/src_pipe'
 CONFIG_TARGET = '/fq-config/pipeline.ini'
 BEGIN = '# >>> FQ MANAGED PATHS'
 END = '# <<< FQ MANAGED PATHS'
-IMAGE = 'ghcr.io/syoong-s/fourier_quad_pipeline_neo:latest'
+IMAGE = 'ghcr.io/syoong-s/fourier_quad_pipeline/cpppipeline:latest'
 ENV_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 PROTECTED = ('/bin', '/sbin', '/usr', '/lib', '/lib64', '/opt', '/etc', '/proc',
              '/sys', '/dev', '/fq-config', SOURCE_TARGET)

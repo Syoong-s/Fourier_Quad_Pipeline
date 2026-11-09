@@ -1,6 +1,6 @@
-LAPACK_LIB_DIR ?= /lustre/home/acct-phyzj/phyzj-m31/ysx/pack/lib
+LAPACK_LIB_DIR ?= 
 
-CFITSIO_LIB_DIR ?= /lustre/home/acct-phyzj/phyzj-m31/usr/lib
+CFITSIO_LIB_DIR ?= 
 CFITSIO_LIB ?= $(CFITSIO_LIB_DIR)/libcfitsio.so
 
 LDFLAGS := -L$(LAPACK_LIB_DIR)
