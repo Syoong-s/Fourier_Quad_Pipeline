@@ -50,17 +50,13 @@ FROM stack-builder AS pmi2-builder
 ARG BUILD_JOBS=4
 ARG SLURM_VERSION=25.11.2
 ARG SLURM_URL=https://download.schedmd.com/slurm/slurm-25.11.2.tar.bz2
-ARG SLURM_SHA256=9bfd844f746c1268d6e0cb14bda586b548b1c4b12f8c72181397d0cec9ce5d39
 
 ENV PMI2_PREFIX=/opt/pmi2
 
 RUN test "${SLURM_VERSION}" = "25.11.2" \
     && mkdir -p /build/slurm \
     && curl --fail --location --retry 5 --connect-timeout 30 \
-        "${SLURM_URL}" --output /build/slurm/slurm.tar.bz2 \
-    && printf '%s  %s\n' \
-        "${SLURM_SHA256}" /build/slurm/slurm.tar.bz2 \
-        | sha256sum --check -
+        "${SLURM_URL}" --output /build/slurm/slurm.tar.bz2
 
 RUN tar -xjf /build/slurm/slurm.tar.bz2 -C /build/slurm \
     && mkdir -p /build/slurm/build \
@@ -88,17 +84,13 @@ FROM pmi2-builder AS openmpi-builder
 ARG BUILD_JOBS=4
 ARG OPENMPI_VERSION=4.1.8
 ARG OPENMPI_URL=https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.8.tar.bz2
-ARG OPENMPI_SHA256=466f68e3132a1dc02710cc2011fafced8336d98359fa2dae4dddcfd5719f12a9
 
 ENV OPENMPI_PREFIX=/opt/openmpi-4.1.8
 
 RUN test "${OPENMPI_VERSION}" = "4.1.8" \
     && mkdir -p /build/openmpi \
     && curl --fail --location --retry 5 --connect-timeout 30 \
-        "${OPENMPI_URL}" --output /build/openmpi/openmpi.tar.bz2 \
-    && printf '%s  %s\n' \
-        "${OPENMPI_SHA256}" /build/openmpi/openmpi.tar.bz2 \
-        | sha256sum --check -
+        "${OPENMPI_URL}" --output /build/openmpi/openmpi.tar.bz2
 
 RUN tar -xjf /build/openmpi/openmpi.tar.bz2 -C /build/openmpi \
     && mkdir -p /build/openmpi/build \

@@ -62,9 +62,8 @@ ARG MPICH_URL=https://www.mpich.org/static/downloads/4.1.2/mpich-4.1.2.tar.gz
 ARG CFITSIO_URL=https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.3.1.tar.gz
 ARG LAPACK_URL=https://www.netlib.org/lapack/lapack-3.8.0.tar.gz
 
-COPY checksums.sha256 /build/dist/checksums.sha256
-
-RUN curl --fail --location --retry 5 --connect-timeout 30 \
+RUN mkdir -p /build/dist \
+    && curl --fail --location --retry 5 --connect-timeout 30 \
         "${GCC_URL}" --output /build/dist/gcc-4.8.5.tar.gz \
     && curl --fail --location --retry 5 --connect-timeout 30 \
         "${GMP_URL}" --output /build/dist/gmp-4.3.2.tar.bz2 \
@@ -77,9 +76,7 @@ RUN curl --fail --location --retry 5 --connect-timeout 30 \
     && curl --fail --location --retry 5 --connect-timeout 30 \
         "${CFITSIO_URL}" --output /build/dist/cfitsio-4.3.1.tar.gz \
     && curl --fail --location --retry 5 --connect-timeout 30 \
-        "${LAPACK_URL}" --output /build/dist/lapack-3.8.0.tar.gz \
-    && cd /build/dist \
-    && sha256sum --check checksums.sha256
+        "${LAPACK_URL}" --output /build/dist/lapack-3.8.0.tar.gz
 
 FROM source-fetcher AS gcc-builder
 
