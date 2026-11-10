@@ -1,59 +1,130 @@
 name: Publish release
 
-# Trigger: version tags (v*) or manual dispatch. Each scientific/deployment
-# directory remains a separate zip. English docs are packaged independently.
+# Release assets: four independent program archives plus one standalone script.
+# The f77 archive also contains the dataset initializer and its own README.
+# Repository-wide documentation is not uploaded as a release asset.
 on:
-  workflow_dispatch:
   push:
-    tags:
-      - "v*"
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v* tag to publish
+        required: true
+        type: string
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
 jobs:
   release:
-    name: Create release with zipped directories
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${RELEASE_TAG}" =~ ^v[0-9][A-Za-z0-9._-]*$ ]]
 
-      - name: Package each content directory
+      - name: Check out the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Package programs and external catalog script
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p artifacts
 
-          # Keep each source and launcher folder as its own archive.
-          # Documentation is bundled separately below to keep both manuals
-          # together with the root navigation and license.
-          find . -maxdepth 1 -mindepth 1 -type d \
-              ! -name '.git' \
-              ! -name '.planning' \
-              ! -name '.github' \
-              ! -name 'artifacts' \
-              ! -name 'doc' \
-              -print0 | sort -z | while IFS= read -r -d '' dir; do
-            dirname="$(basename "$dir")"
-            echo "Zipping: $dirname"
-            zip -q -r "artifacts/${dirname}.zip" "$dir" \
-                -x '*/.git/*' '*/.git'
+          # Preserve each program directory at the archive root.
+          git archive --format=zip \
+            --output="artifacts/cpp_Standard-${RELEASE_TAG}.zip" \
+            "${RELEASE_TAG}" cpp_Standard/
+          git archive --format=zip \
+            --output="artifacts/cpp_docker-${RELEASE_TAG}.zip" \
+            "${RELEASE_TAG}" cpp_docker/
+          git archive --format=zip \
+            --output="artifacts/f77-${RELEASE_TAG}.zip" \
+            "${RELEASE_TAG}" f77/ init_program/
+          git archive --format=zip \
+            --output="artifacts/f77_docker-${RELEASE_TAG}.zip" \
+            "${RELEASE_TAG}" f77_docker/
+
+          # Publish the example as a standalone Python asset, not a fifth ZIP.
+          git show "${RELEASE_TAG}:external_catalog_query_example/query_y6gold_sync_mp_v2.py" \
+            > "artifacts/query_y6gold_sync_mp_v2-${RELEASE_TAG}.py"
+
+          # Fail closed if a required file is missing or an archive leaks docs.
+          test -s "artifacts/query_y6gold_sync_mp_v2-${RELEASE_TAG}.py"
+          unzip -Z1 "artifacts/f77-${RELEASE_TAG}.zip" \
+            | grep -Fx 'init_program/README.md' >/dev/null
+
+          for bundle in cpp_Standard cpp_docker f77_docker; do
+            if unzip -Z1 "artifacts/${bundle}-${RELEASE_TAG}.zip" \
+                | grep -Ev "^${bundle}/"; then
+              echo "Unexpected path in ${bundle} archive" >&2
+              exit 1
+            fi
           done
-
-          # The English documentation has two independent systems under doc/.
-          zip -q -r artifacts/docs.zip README.md LICENSE doc/ \
-              init_program/README.md
-
-          echo "=== Artifact list ==="
+          if unzip -Z1 "artifacts/f77-${RELEASE_TAG}.zip" \
+              | grep -Ev '^(f77/|init_program/)'; then
+            echo 'Unexpected path in f77 archive' >&2
+            exit 1
+          fi
+          # Only the initializer's own README is allowed inside the ZIPs.
+          for archive in artifacts/*.zip; do
+            if unzip -Z1 "$archive" \
+                | grep -E '(^doc/|\.md$)' \
+                | grep -vFx 'init_program/README.md'; then
+              echo "Unexpected documentation file in $archive" >&2
+              exit 1
+            fi
+          done
+          test "$(find artifacts -maxdepth 1 -type f | wc -l)" -eq 5
+          echo 'Release assets:'
           ls -lh artifacts/
 
-      - name: Create GitHub release
+      - name: Create or update GitHub Release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
-            --generate-notes \
-            artifacts/*.zip
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            # Re-publishing also removes obsolete docs.zip and any other
+            # historical attachments: the five listed assets are authoritative.
+            gh release upload "${RELEASE_TAG}" artifacts/* --clobber
+            expected=(
+              "cpp_Standard-${RELEASE_TAG}.zip"
+              "cpp_docker-${RELEASE_TAG}.zip"
+              "f77-${RELEASE_TAG}.zip"
+              "f77_docker-${RELEASE_TAG}.zip"
+              "query_y6gold_sync_mp_v2-${RELEASE_TAG}.py"
+            )
+            while IFS= read -r asset; do
+              keep=false
+              for wanted in "${expected[@]}"; do
+                if [[ "$asset" == "$wanted" ]]; then
+                  keep=true
+                  break
+                fi
+              done
+              if [[ "$keep" == false ]]; then
+                echo "Removing obsolete release asset: $asset"
+                gh release delete-asset "${RELEASE_TAG}" "$asset" --yes
+              fi
+            done < <(gh release view "${RELEASE_TAG}" \
+              --json assets --jq '.assets[].name')
+          else
+            gh release create "${RELEASE_TAG}" --verify-tag \
+              --title "${RELEASE_TAG}" --generate-notes artifacts/*
+          fi

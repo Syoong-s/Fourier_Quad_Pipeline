@@ -1,7 +1,7 @@
 {
   "version": 1,
   "source": "../cpp_Standard",
-  "image": "ghcr.io/syoong-s/fourier_quad_pipeline_neo:latest",
+  "image": "ghcr.io/syoong-s/fourier_quad_pipeline/cpppipeline:latest",
   "ranks": 4,
   "build_jobs": 4,
   "run_directory": "./fq-run",
